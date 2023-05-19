@@ -29,7 +29,7 @@ class ParseController extends Controller {
 
     public function getMessage(Request $request) {
 
-        Log::alert(json_encode($request->all()));
+        Log::alert(json_encode($request->input('message')));
 
         $message = [];
 
