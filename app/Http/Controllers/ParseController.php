@@ -31,6 +31,8 @@ class ParseController extends Controller {
 
         Log::alert(json_encode($request->input('message')));
 
+        return true;
+
         $message = [];
 
         $lines = explode("\n", $request->input('message'));
