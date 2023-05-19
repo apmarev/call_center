@@ -8,26 +8,6 @@ use Revolution\Google\Sheets\Facades\Sheets;
 
 class ParseController extends Controller {
 
-    protected static function removeEmoji($string): string {
-
-        $regex_emoticons = '/[\x{1F600}-\x{1F64F}]/u';
-        $clear_string = preg_replace($regex_emoticons, '', $string);
-
-        $regex_symbols = '/[\x{1F300}-\x{1F5FF}]/u';
-        $clear_string = preg_replace($regex_symbols, '', $clear_string);
-
-        $regex_transport = '/[\x{1F680}-\x{1F6FF}]/u';
-        $clear_string = preg_replace($regex_transport, '', $clear_string);
-
-        $regex_misc = '/[\x{2600}-\x{26FF}]/u';
-        $clear_string = preg_replace($regex_misc, '', $clear_string);
-
-        $regex_dingbats = '/[\x{2700}-\x{27BF}]/u';
-        $clear_string = preg_replace($regex_dingbats, '', $clear_string);
-
-        return $clear_string;
-    }
-
     public function getMessage(Request $request) {
 
         if($request->has('message') && isset($request->input('message')['text'])) {
@@ -57,24 +37,40 @@ class ParseController extends Controller {
                         'price' => $price,
                     ];
             }
-        }
 
-        $values = Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range('A1:B1000')->all();
 
-        foreach($message as $device) {
-            $isset = 0;
-            $key = 0;
-            foreach($values as $value) {
-                if($value[0] == $device['name']) {
-                    $isset = $key;
-                    break;
+
+
+            $values = Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range('A1:B1000')->all();
+
+            $insert = [];
+
+            foreach($message as $device) {
+                $isset = -1;
+                $key = 0;
+                foreach($values as $value) {
+                    if($value[0] == $device['name']) {
+                        $isset = $key;
+                        break;
+                    }
+                    $key++;
                 }
-                $key++;
+
+                if($isset > -1) $values[$isset] = [$device['name'], $device['price']];
+                else $insert[] = [$device['name'], $device['price']];
             }
 
-            if($isset > 0) Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range("A{$isset}")->update([[$device['name'], $device['price']]]);
-            else Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range("A{$isset}")->append([[$device['name'], $device['price']]]);
+            if(sizeof($insert) > 0) {
+                foreach($insert as $i) {
+                    $values[] = $i;
+                }
+            }
+
+            Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range("A1")->update($values);
+
         }
+
+
 
 
         return "Ok";
