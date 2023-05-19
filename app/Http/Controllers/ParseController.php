@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
+use Revolution\Google\Sheets\Facades\Sheets;
 
 class ParseController extends Controller {
 
@@ -29,38 +30,54 @@ class ParseController extends Controller {
 
     public function getMessage(Request $request) {
 
-        Log::alert($request->input('message')['text']);
+        if($request->has('message') && isset($request->input('message')['text'])) {
+            $message = [];
 
-        return "Ok";
+            $lines = explode("\n", $request->input('message')['text']);
 
-        $message = [];
+            foreach($lines as $line) {
+                if($line == '' || $line == ' ') continue;
+                if(strripos($line, '[') === false) {
 
-        $lines = explode("\n", $request->input('message'));
+                } else continue;
 
-        foreach($lines as $line) {
-            if($line == '' || $line == ' ') continue;
-            if(strripos($line, '[') === false) {
+                $string = trim(preg_replace("/[^a-zA-ZА-Яа-яЁё0-9\s]/u","", $line));
 
-            } else continue;
+                $string_array = explode(" ", $string);
 
-            $string = trim(preg_replace("/[^a-zA-ZА-Яа-яЁё0-9\s]/u","", $line));
+                $price = end($string_array);
 
-            $string_array = explode(" ", $string);
+                array_pop($string_array);
 
-            $price = end($string_array);
+                $name = implode(' ', $string_array);
 
-            array_pop($string_array);
-
-            $name = implode(' ', $string_array);
-
-            if($name != '' && $price != '' && is_numeric($price))
-                $message[] = [
-                    'name' => implode(' ', $string_array),
-                    'price' => $price,
-                ];
+                if($name != '' && $price != '' && is_numeric($price))
+                    $message[] = [
+                        'name' => implode(' ', $string_array),
+                        'price' => $price,
+                    ];
+            }
         }
 
-        return $message;
+        $values = Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range('A1:B1000')->all();
+
+        foreach($message as $device) {
+            $isset = 0;
+            $key = 0;
+            foreach($values as $value) {
+                if($value[0] == $device['name']) {
+                    $isset = $key;
+                    break;
+                }
+                $key++;
+            }
+
+            if($isset > 0) Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range("A{$isset}")->update([[$device['name'], $device['price']]]);
+            else Sheets::spreadsheet('160Fn0hUuonM4AvH1sdc92o1qOCv5NK2KNvhDAGUFR8I')->sheet('Лист1')->range("A{$isset}")->append([[$device['name'], $device['price']]]);
+        }
+
+
+        return "Ok";
 
     }
 
