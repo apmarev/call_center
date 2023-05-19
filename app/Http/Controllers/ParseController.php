@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ParseController extends Controller {
 
@@ -27,6 +28,8 @@ class ParseController extends Controller {
     }
 
     public function getMessage(Request $request) {
+
+        Log::alert(json_encode($request->all()));
 
         $message = [];
 
